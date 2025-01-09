@@ -12,7 +12,7 @@ form.addEventListener('submit', function (event) {
         return;
     }
 
-    let counter = 1;
+    let counter = 0;
     const intervalId = setInterval(() => {
         fetch('https://api.prod.jcloudify.com/whoami', {
             headers: {
