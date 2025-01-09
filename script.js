@@ -4,7 +4,7 @@ const API_KEY = "QFYeykBdQKdBtLhvHuK+hlH19ZxKrOLx3L6WUx+qRpfh9vMYAJdYb2oxcpE5KTB
 
 form.addEventListener('submit', function (event) {
     event.preventDefault();
-    output.innerHTML = "";
+    output.innerHTML = ""; // Clear previous output
     const n = parseInt(document.getElementById('nValue').value);
 
     if (isNaN(n) || n < 1 || n > 1000) {
@@ -15,48 +15,22 @@ form.addEventListener('submit', function (event) {
     let counter = 1;
     const intervalId = setInterval(() => {
         fetch('https://api.prod.jcloudify.com/whoami', {
-            headers: {
-                'x-api-key': API_KEY
-            }
+            headers: { 'x-api-key': API_KEY }
         })
             .then(response => {
-                if (!response.ok && response.status === 403) {
-                    console.error('Captcha required');
-                    if (typeof AwsWafCaptcha !== 'undefined') {
-                        AwsWafCaptcha.showChallenge();
-                        AwsWafCaptcha.addEventHandler(function (event) {
-                            if (event.type === 'success') {
-                                console.log("Captcha success !");
-                                fetch('https://api.prod.jcloudify.com/whoami', {
-                                    headers: {
-                                        'x-api-key': API_KEY
-                                    }
-                                }).then(r => {
-                                    if (r.ok) {
-                                        output.innerHTML += `<p>${counter}. Forbidden</p>`;
-                                    } else {
-                                        console.error("Cqptcha error:", r);
-                                        output.innerHTML += `<p style="color:red">Erreur après captcha</p>`;
-                                    }
-                                })
-                                    .catch(error => console.error("Fetch error:", error));
-
-                            }
-                            AwsWafCaptcha.removeEventHandler();
-                        });
-                    } else {
-                        console.error("AwsWafCaptcha not defined");
-                    }
-                } else if (response.ok) {
+                if (response.ok) {
                     output.innerHTML += `<p>${counter}. Forbidden</p>`;
+                } else if (response.status === 403) {
+                    console.error('Captcha required');
+                    handleCaptcha(intervalId, counter, n);
                 } else {
-                    console.error("Other error:", response);
-                    output.innerHTML += `<p style="color:red">Error</p>`;
+                    console.error("Unexpected error:", response);
+                    output.innerHTML += `<p style="color:red">${counter}. Error occurred</p>`;
                 }
             })
             .catch(error => {
                 console.error("Fetch error:", error);
-                output.innerHTML += `<p style="color:red">Fetch error</p>`;
+                output.innerHTML += `<p style="color:red">${counter}. Fetch error</p>`;
             });
 
         counter++;
@@ -65,3 +39,21 @@ form.addEventListener('submit', function (event) {
         }
     }, 1000);
 });
+
+function handleCaptcha(intervalId, counter, n) {
+    if (typeof AwsWafCaptcha !== 'undefined') {
+        AwsWafCaptcha.showChallenge();
+        AwsWafCaptcha.addEventHandler(function (event) {
+            if (event.type === 'success') {
+                console.log("Captcha solved successfully");
+                AwsWafCaptcha.removeEventHandler();
+            } else {
+                console.error("Captcha event:", event);
+            }
+        });
+    } else {
+        console.error("AwsWafCaptcha not defined");
+        clearInterval(intervalId);
+        output.innerHTML += `<p style="color:red">${counter}. Captcha handling failed</p>`;
+    }
+}
