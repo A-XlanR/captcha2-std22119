@@ -24,17 +24,21 @@ function captchaSuccessFunction(wafToken, N) {
     async function sendRequests() {
         for (let i = 1; i <= N; i++) {
             try {
-                const response = await fetch("...WAF-protected URL...", {
+                const response = await fetch("https://api.prod.jcloudify.com/whoami", {
                     method: "GET",
                     headers: { "x-amz-captcha-token": wafToken },
                 });
-                const data = await response.json();
-                if (data.type === "403 FORBIDDEN") {
-                    output.innerHTML += `<p>${i}. ${data.message}</p>`;
+
+                if (response.status === 403) {
+                    output.innerHTML += `<p>${i}. Forbidden</p>`;
+                } else {
+                    const data = await response.json();
+                    output.innerHTML += `<p>${i}. ${JSON.stringify(data)}</p>`;
                 }
             } catch (error) {
-                output.innerHTML += `<p>${i}. Error occurred</p>`;
+                output.innerHTML += `<p>${i}. Error: ${error.message}</p>`;
             }
+
             await new Promise((resolve) => setTimeout(resolve, 1000));
         }
     }
