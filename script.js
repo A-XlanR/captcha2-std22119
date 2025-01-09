@@ -1,6 +1,10 @@
 document.getElementById("captchaForm").addEventListener("submit", (event) => {
     event.preventDefault();
     const N = parseInt(document.getElementById("number").value);
+    if (N < 1 || N > 1000) {
+        alert("Please enter a number between 1 and 1000.");
+        return;
+    }
     document.getElementById("captchaForm").style.display = "none";
     showMyCaptcha(N);
 });
@@ -31,13 +35,18 @@ function captchaSuccessFunction(wafToken, N) {
 
                 if (response.status === 403) {
                     output.innerHTML += `<p>${i}. Forbidden</p>`;
-                } else {
+                } else if (response.ok) {
                     const data = await response.json();
                     output.innerHTML += `<p>${i}. ${JSON.stringify(data)}</p>`;
+                } else {
+                    output.innerHTML += `<p>${i}. Unexpected Response: ${response.status}</p>`;
                 }
             } catch (error) {
                 output.innerHTML += `<p>${i}. Error: ${error.message}</p>`;
             }
+
+            // Scroll to the latest message
+            output.scrollTop = output.scrollHeight;
 
             await new Promise((resolve) => setTimeout(resolve, 1000));
         }
